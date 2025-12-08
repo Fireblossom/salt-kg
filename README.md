@@ -27,13 +27,13 @@ Knowledge graph (KG) and data integration communities have explored connecting t
 We can bridge this gap by enriching enterprise relational data with an explicit semantic layer that links tables, fields, and business objects through declarative knowledge in KG
 
 ## How was SALT-KG Created
-![Motivation for Semantics with Tabular Data](dataset-creation.png)
+![Motivation for Semantics with Tabular Data](images/dataset-creation.png)
 For every relation (Table) in the underlying SALT dataset, we find a matching node in the KG (a View).. We extract triples related to the Views that include:
 Fields: data abstraction nodes with associated fields, labels, associations, data classes, reference fields, and other elements.
 ObjectNodeTypes: further semantic metadata through technical definitions, business object descriptions
 
 ## Dataset Overview
-![Motivation for Semantics with Tabular Data](dataset-stats.png)
+![Motivation for Semantics with Tabular Data](images/dataset-stats.png)
 The SALT-KG dataset consists of 4 tables from the SALT benchmark, enriched with semantic metadata from an Operational Business Knowledge Graph (OBKG). The dataset includes:    
 - 4 relational tables with transactional data
 - Metadata Knowledge Graph (OBKG) with field-level descriptions, relational dependencies, and business object
