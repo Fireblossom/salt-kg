@@ -9,11 +9,11 @@
 ## Agentic Scripting Solver
 
 I developed a novel prediction approach that uses **LLM-generated Python scripts grounded in business rules** instead of embedding-based similarity matching. This approach:
-- **Exceeds paper baselines on 7/8 fields**
-- **Matches or beats SALT-KG best results on 4/8 fields**
+- **Achieves competitive results with paper benchmarks**
+- Shows how interpretable rule-based methods can **complement** embedding approaches
 - Provides **fully interpretable and editable** prediction logic
 
-### Results: MRR Comparison vs Paper
+### Results: MRR Comparison
 
 | Target Field | Ours | SALT Baseline Best | SALT-KG Best | vs Baseline | vs SALT-KG |
 |--------------|------|---------------|--------------|-------------|------------|
@@ -27,7 +27,8 @@ I developed a novel prediction approach that uses **LLM-generated Python scripts
 | SHIPPINGCONDITION | **0.798** | 0.74 | 0.78 | +0.058 | **+0.018** |
 
 > **Baseline Best**: Best model from Table 2 (without KG)  
-> **SALT-KG Best**: Baseline + KG improvement from Table 1
+> **SALT-KG Best**: Baseline + KG enhancement from Table 1  
+> **Note**: Results are comparable within margin; SALT-KG embeddings likely provide additional value for cold-start scenarios.
 
 ### Methodology: Code as Reasoning
 
