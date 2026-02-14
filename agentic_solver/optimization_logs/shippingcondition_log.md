@@ -8,15 +8,13 @@
 ## Current Performance
 | Metric | Value |
 |--------|-------|
-| Accuracy | 69.65% |
-| MRR (Top-1) | ≥0.6965 |
-| Baseline (mode) | 35.50% |
-| Paper Baseline MRR | 0.74 |
-| Improvement | +34.15pp |
+| Ours (MRR) | **0.798** |
+| SALT Baseline Best | 0.74 |
+| SALT-KG Best | 0.78 |
 
 ## Script Location
 - `agentic_solver/saved_scripts/shippingcondition.py`
-- `agentic_solver/saved_scripts/shippingcondition_mapping_v3.json`
+- `agentic_solver/saved_scripts/shippingcondition_mapping_simple.json`
 
 ---
 
@@ -65,3 +63,41 @@
   7. SHIPPINGPOINT
 
 ---
+
+## Lookup SQL Queries
+
+Final script uses a simplified 2-level strategy:
+
+```sql
+-- L1: (SOLDTOPARTY, SALESDOCUMENTTYPE, SHIPPINGPOINT) -> SHIPPINGCONDITION (32,967 keys)
+SELECT "SOLDTOPARTY" || '|' || "SALESDOCUMENTTYPE" || '|' || "SHIPPINGPOINT" AS key,
+       MODE("SHIPPINGCONDITION") AS shippingcondition
+FROM train
+GROUP BY key
+
+-- L2: (SHIPTOPARTY, SALESDOCUMENTTYPE, SHIPPINGPOINT) -> SHIPPINGCONDITION
+SELECT "SHIPTOPARTY" || '|' || "SALESDOCUMENTTYPE" || '|' || "SHIPPINGPOINT" AS key,
+       MODE("SHIPPINGCONDITION") AS shippingcondition
+FROM train
+GROUP BY key
+
+-- Global mode (fallback)
+SELECT MODE("SHIPPINGCONDITION") FROM train
+```
+
+### Sample Results (L1: top 10 by frequency)
+
+| Key (SOLDTO\|DT\|SP) | SC | Rows |
+|-----------------------|------|------|
+| 3143487067\|ZMUT\|MUST | 95 | 25,676 |
+| 6726809660\|ZMUN\|MUST | 95 | 17,790 |
+| 9458338227\|ZMUN\|MUST | 98 | 9,837 |
+| 3356660324\|TA\|0001 | 01 | 9,165 |
+| 2635055107\|ZMUN\|MUST | 98 | 8,846 |
+| 6700514882\|ZMUN\|MUST | 95 | 7,953 |
+| 0851548071\|TA\|0001 | 05 | 7,533 |
+| 0212677443\|ZMUN\|0702 | 99 | 7,308 |
+| 7481075268\|ZMUN\|MUST | 99 | 7,281 |
+| 6259385027\|ZMUN\|MUST | 99 | 7,160 |
+
+> ZMUN/ZMUT (virtual orders) with SHIPPINGPOINT=MUST typically get SC=95/98/99. Physical orders (TA) with real shipping points get SC=01/05.

@@ -14,7 +14,7 @@ from pathlib import Path
 from typing import Dict, List, Tuple, Optional, Any
 from dataclasses import dataclass
 
-from .duckdb_analyzer import DataAnalyzer, create_analyzer
+from .duckdb_analyzer import DataAnalyzer
 
 
 @dataclass
@@ -51,7 +51,7 @@ class ScriptImprover:
         self.executor = executor
         self.verbose = verbose
         self.saved_scripts_dir = Path(__file__).parent / 'saved_scripts'
-        self.analyzer: Optional[DataAnalyzer] = None  # Lazy init
+        self.analyzer: Optional[DataAnalyzer] = None
     
     def _log(self, msg: str):
         if self.verbose:

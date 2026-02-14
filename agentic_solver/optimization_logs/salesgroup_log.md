@@ -8,9 +8,9 @@
 ## Current Performance
 | Metric | Value |
 |--------|-------|
-| Accuracy | 78.80% |
-| Baseline (mode) | 4.70% |
-| Improvement | 74.1pp |
+| Ours (MRR) | **0.760** |
+| SALT Baseline Best | 0.51 |
+| SALT-KG Best | 0.53 |
 
 ## Script Location
 - `agentic_solver/saved_scripts/salesgroup.py`
@@ -26,3 +26,53 @@
 
 ---
 
+## Lookup SQL Queries
+
+```sql
+-- L1: SOLDTOPARTY + CUSTOMERPAYMENTTERMS -> SALESGROUP (17,616 keys)
+SELECT "SOLDTOPARTY" || '|' || "CUSTOMERPAYMENTTERMS" AS key,
+       MODE("SALESGROUP") AS salesgroup
+FROM train
+GROUP BY key
+
+-- L2: SOLDTOPARTY -> SALESGROUP (fallback, 13,155 keys)
+SELECT "SOLDTOPARTY",
+       MODE("SALESGROUP") AS salesgroup
+FROM train
+GROUP BY "SOLDTOPARTY"
+
+-- Global mode (fallback): '999'
+SELECT MODE("SALESGROUP") FROM train
+```
+
+### Sample Results
+
+**L1** (SOLDTOPARTY+PAYMENT → SALESGROUP, 17,616 keys, top 10):
+
+| Key (SOLDTO\|PAYMENT) | SALESGROUP | Rows |
+|------------------------|------------|------|
+| 6726809660\|32 | 999 | 22,234 |
+| 3143487067\|54 | 999 | 17,879 |
+| 5300596642\|32 | 999 | 15,474 |
+| 0851548071\|32 | 789 | 13,868 |
+| 4742731422\|32 | 705 | 13,440 |
+| 6700514882\|00 | 999 | 12,266 |
+| 8383348969\|33 | 301 | 10,872 |
+| 9458338227\|96 | 726 | 10,252 |
+
+**L2** (SOLDTOPARTY → SALESGROUP, 13,155 keys, top 10):
+
+| SOLDTOPARTY | SALESGROUP | Rows |
+|-------------|------------|------|
+| 3143487067 | 999 | 25,677 |
+| 6726809660 | 999 | 22,236 |
+| 5300596642 | 999 | 15,508 |
+| 0851548071 | 789 | 13,868 |
+| 4742731422 | 705 | 13,546 |
+| 6700514882 | 999 | 12,286 |
+| 8383348969 | 301 | 10,886 |
+| 9458338227 | 726 | 10,252 |
+
+**Global mode**: `'999'`
+
+> Script flow: L1 adds CUSTOMERPAYMENTTERMS for finer segmentation (e.g., same customer may have different SalesGroup for different payment terms). L2 falls back to SOLDTOPARTY alone. `'999'` is the catch-all default group.

@@ -8,15 +8,13 @@
 ## Current Performance
 | Metric | Value |
 |--------|-------|
-| Accuracy | 98.65% |
-| MRR (Top-1) | ≥0.9865 |
-| Baseline (mode) | 43.40% |
-| Paper Baseline MRR | 0.97 |
-| Improvement | +55.25pp |
+| Ours (MRR) | **0.986** |
+| SALT Baseline Best | 0.98 |
+| SALT-KG Best | 0.99 |
 
 ## Script Location
 - `agentic_solver/saved_scripts/shippingpoint.py`
-- `agentic_solver/saved_scripts/shippingpoint_mapping_v2.json`
+- `agentic_solver/saved_scripts/shippingpoint_mapping.json`
 
 ---
 
@@ -58,3 +56,51 @@
 - **Remaining errors**: 5,456 (rare values, edge cases)
 
 ---
+
+## Lookup SQL Queries
+
+```sql
+-- Composite: (PLANT, is_service) -> SHIPPINGPOINT (59 keys)
+-- is_service = SHIPPINGCONDITION >= 94 OR DOCTYPE IN ('ZMUN', 'ZMUT')
+SELECT "PLANT" || '|' ||
+       CASE WHEN CAST("SHIPPINGCONDITION" AS INT) >= 94
+            OR "SALESDOCUMENTTYPE" IN ('ZMUN', 'ZMUT')
+       THEN '1' ELSE '0' END AS key,
+       MODE("SHIPPINGPOINT") AS shippingpoint
+FROM train
+GROUP BY key
+
+-- SC=18 special case: PLANT -> SHIPPINGPOINT
+SELECT "PLANT",
+       MODE("SHIPPINGPOINT") AS shippingpoint
+FROM train
+WHERE CAST("SHIPPINGCONDITION" AS INT) = 18
+GROUP BY "PLANT"
+
+-- Variant: SHIPPINGCONDITION 18-20 by PLANT
+SELECT "PLANT",
+       MODE("SHIPPINGPOINT") AS shippingpoint
+FROM train
+WHERE CAST("SHIPPINGCONDITION" AS INT) BETWEEN 18 AND 20
+GROUP BY "PLANT"
+
+-- Global mode (fallback)
+SELECT MODE("SHIPPINGPOINT") FROM train
+```
+
+### Sample Results (Composite: top 15 by frequency)
+
+| Key (PLANT\|is_service) | SHIPPINGPOINT | Rows |
+|-------------------------|---------------|------|
+| 0001\|1 | MUST | 978,285 |
+| 0001\|0 | 0001 | 246,423 |
+| 2500\|1 | 2502 | 73,255 |
+| 0700\|1 | 0702 | 72,659 |
+| 0310\|0 | 0300 | 54,270 |
+| 0310\|1 | 0302 | 53,289 |
+| 1500\|1 | 1502 | 46,179 |
+| 5900\|1 | 5902 | 41,896 |
+| 4200\|0 | 4200 | 35,585 |
+| 0400\|1 | 0401 | 33,918 |
+
+> `is_service=1` (SC>=94 or ZMUN/ZMUT) routes to virtual shipping points (MUST, x02 suffix). `is_service=0` routes to physical points. Only 59 unique keys needed.

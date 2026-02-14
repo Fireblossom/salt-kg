@@ -8,9 +8,9 @@
 ## Current Performance
 | Metric | Value |
 |--------|-------|
-| Accuracy | 99.80% |
-| Baseline (mode) | 99.80% |
-| Improvement | 0.0pp |
+| Ours (MRR) | **0.997** |
+| SALT Baseline Best | 0.99 |
+| SALT-KG Best | 1.00 |
 
 ## Script Location
 - `agentic_solver/saved_scripts/salesoffice.py`
@@ -26,3 +26,13 @@
 
 ---
 
+## Lookup SQL Queries
+
+No lookup table needed. The script returns the global mode value directly.
+
+```sql
+-- Global mode (result: '0010', covering 99.69% of training data)
+SELECT MODE("SALESOFFICE") FROM train
+```
+
+Sample result: `'0010'` (1,910,792 / 1,916,685 rows)

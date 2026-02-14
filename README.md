@@ -48,6 +48,17 @@ Instead of embedding-based similarity matching, I use:
 2. **SHIPPINGCONDITION ≥94**: Indicates virtual/non-physical shipping points
 3. **Incoterms cascade**: Hierarchical fallback (SOLDTO → SHIPTO → ORG) improves coverage
 
+### Role of the Knowledge Graph
+
+The KG plays an **indirect** role in this approach. It provides schema-level semantic context (e.g., "DDP = Delivered Duty Paid", "SHIPPINGCONDITION describes logistics terms") that helps the LLM understand SAP domain concepts during initial script generation. However, the KG does not contain instance-level mappings (e.g., "Customer X always uses payment term 32").
+
+The final prediction performance comes from **statistical lookup tables** extracted from training data via DuckDB SQL analysis, not from KG entity relationships. Once scripts are optimized and saved, the KG is no longer involved at prediction time.
+
+```
+KG (semantic context) → LLM generates initial script → DuckDB SQL analysis
+→ iterative improvement → saved_scripts/ (KG no longer needed)
+```
+
 ---
 
 ## Quick Start
@@ -107,17 +118,19 @@ The `--improve` flag runs an iterative improvement loop using **DuckDB for SQL-b
 
 ```
 salt-kg/
-├── agentic_solver/          # Agentic Scripting Solver
-│   ├── predictor.py         # Main predictor class
-│   ├── script_generator.py  # LLM-based script generation
-│   ├── script_improver.py   # Iterative improvement agent
-│   ├── duckdb_analyzer.py   # SQL-based pattern analysis
-│   ├── kg_loader.py         # Knowledge Graph loader
-│   └── saved_scripts/       # Generated prediction scripts & lookup tables
-├── data/                    # SALT-KG dataset
-│   ├── salt/                # Tabular data (parquet)
-│   └── salt-kg/             # Knowledge Graph metadata
-├── demo.py                  # Interactive demo (--improve flag for SQL workflow)
+├── agentic_solver/              # Agentic Scripting Solver
+│   ├── predictor.py             # Main predictor class (sklearn-like API)
+│   ├── script_generator.py      # LLM-based script generation
+│   ├── script_improver.py       # Iterative improvement agent
+│   ├── duckdb_analyzer.py       # SQL-based pattern analysis
+│   ├── kg_loader.py             # Knowledge Graph context loader
+│   ├── script_executor.py       # Safe script execution sandbox
+│   ├── saved_scripts/           # Optimized prediction scripts & lookup tables
+│   └── optimization_logs/       # Per-field analysis logs with SQL queries & results
+├── data/                        # SALT-KG dataset
+│   ├── salt/                    # Tabular data (parquet)
+│   └── salt-kg/                 # Knowledge Graph metadata (JSON)
+├── demo.py                      # Interactive demo
 └── requirements.txt
 ```
 

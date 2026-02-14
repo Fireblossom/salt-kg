@@ -359,20 +359,3 @@ class DataAnalyzer:
             return {}
         
         return dict(zip(result['key_val'].astype(str), result['target_val'].astype(str)))
-
-
-# Convenience function
-def create_analyzer(train_df: Optional[pd.DataFrame] = None) -> DataAnalyzer:
-    """
-    Create a DataAnalyzer, optionally preloading a DataFrame.
-    
-    Args:
-        train_df: Optional training DataFrame to load as 'train' table
-        
-    Returns:
-        Configured DataAnalyzer instance
-    """
-    analyzer = DataAnalyzer()
-    if train_df is not None:
-        analyzer.load_dataframe('train', train_df)
-    return analyzer
