@@ -87,17 +87,17 @@ SELECT MODE("SHIPPINGCONDITION") FROM train
 
 ### Sample Results (L1: top 10 by frequency)
 
-| Key (SOLDTO\|DT\|SP) | SC | Rows |
-|-----------------------|------|------|
-| 3143487067\|ZMUT\|MUST | 95 | 25,676 |
-| 6726809660\|ZMUN\|MUST | 95 | 17,790 |
-| 9458338227\|ZMUN\|MUST | 98 | 9,837 |
-| 3356660324\|TA\|0001 | 01 | 9,165 |
-| 2635055107\|ZMUN\|MUST | 98 | 8,846 |
-| 6700514882\|ZMUN\|MUST | 95 | 7,953 |
-| 0851548071\|TA\|0001 | 05 | 7,533 |
-| 0212677443\|ZMUN\|0702 | 99 | 7,308 |
-| 7481075268\|ZMUN\|MUST | 99 | 7,281 |
-| 6259385027\|ZMUN\|MUST | 99 | 7,160 |
+| Key (SOLDTO\|DT\|SP) | SC | Rows | % |
+|-----------------------|------|------|---|
+| 3143487067\|ZMUT\|MUST | 95 | 25,676 | 1.3% |
+| 6726809660\|ZMUN\|MUST | 95 | 17,790 | 0.9% |
+| 9458338227\|ZMUN\|MUST | 98 | 9,837 | 0.5% |
+| 3356660324\|TA\|0001 | 01 | 9,165 | 0.5% |
+| 2635055107\|ZMUN\|MUST | 98 | 8,846 | 0.5% |
+| 6700514882\|ZMUN\|MUST | 95 | 7,953 | 0.4% |
+| 0851548071\|TA\|0001 | 05 | 7,533 | 0.4% |
+| 0212677443\|ZMUN\|0702 | 99 | 7,308 | 0.4% |
+| 7481075268\|ZMUN\|MUST | 99 | 7,281 | 0.4% |
+| 6259385027\|ZMUN\|MUST | 99 | 7,160 | 0.4% |
 
 > ZMUN/ZMUT (virtual orders) with SHIPPINGPOINT=MUST typically get SC=95/98/99. Physical orders (TA) with real shipping points get SC=01/05.

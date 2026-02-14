@@ -90,17 +90,17 @@ SELECT MODE("SHIPPINGPOINT") FROM train
 
 ### Sample Results (Composite: top 15 by frequency)
 
-| Key (PLANT\|is_service) | SHIPPINGPOINT | Rows |
-|-------------------------|---------------|------|
-| 0001\|1 | MUST | 978,285 |
-| 0001\|0 | 0001 | 246,423 |
-| 2500\|1 | 2502 | 73,255 |
-| 0700\|1 | 0702 | 72,659 |
-| 0310\|0 | 0300 | 54,270 |
-| 0310\|1 | 0302 | 53,289 |
-| 1500\|1 | 1502 | 46,179 |
-| 5900\|1 | 5902 | 41,896 |
-| 4200\|0 | 4200 | 35,585 |
-| 0400\|1 | 0401 | 33,918 |
+| Key (PLANT\|is_service) | SHIPPINGPOINT | Rows | % |
+|-------------------------|---------------|------|---|
+| 0001\|1 | MUST | 978,285 | 51.0% |
+| 0001\|0 | 0001 | 246,423 | 12.9% |
+| 2500\|1 | 2502 | 73,255 | 3.8% |
+| 0700\|1 | 0702 | 72,659 | 3.8% |
+| 0310\|0 | 0300 | 54,270 | 2.8% |
+| 0310\|1 | 0302 | 53,289 | 2.8% |
+| 1500\|1 | 1502 | 46,179 | 2.4% |
+| 5900\|1 | 5902 | 41,896 | 2.2% |
+| 4200\|0 | 4200 | 35,585 | 1.9% |
+| 0400\|1 | 0401 | 33,918 | 1.8% |
 
-> `is_service=1` (SC>=94 or ZMUN/ZMUT) routes to virtual shipping points (MUST, x02 suffix). `is_service=0` routes to physical points. Only 59 unique keys needed.
+> `is_service=1` (SC>=94 or ZMUN/ZMUT) routes to virtual shipping points (MUST, x02 suffix). `is_service=0` routes to physical points. Only 59 unique keys needed. Top 10 keys cover 85.4% of data.
