@@ -66,20 +66,26 @@ SELECT "PLANT" || '|' ||
        CASE WHEN CAST("SHIPPINGCONDITION" AS INT) >= 94
             OR "SALESDOCUMENTTYPE" IN ('ZMUN', 'ZMUT')
        THEN '1' ELSE '0' END AS key,
-       MODE("SHIPPINGPOINT") AS shippingpoint
+       MODE("SHIPPINGPOINT") AS shippingpoint,
+       COUNT(*) AS cnt,
+       ROUND(COUNT(*) * 100.0 / (SELECT COUNT(*) FROM train), 1) AS pct
 FROM train
 GROUP BY key
 
 -- SC=18 special case: PLANT -> SHIPPINGPOINT
 SELECT "PLANT",
-       MODE("SHIPPINGPOINT") AS shippingpoint
+       MODE("SHIPPINGPOINT") AS shippingpoint,
+       COUNT(*) AS cnt,
+       ROUND(COUNT(*) * 100.0 / (SELECT COUNT(*) FROM train), 1) AS pct
 FROM train
 WHERE CAST("SHIPPINGCONDITION" AS INT) = 18
 GROUP BY "PLANT"
 
 -- Variant: SHIPPINGCONDITION 18-20 by PLANT
 SELECT "PLANT",
-       MODE("SHIPPINGPOINT") AS shippingpoint
+       MODE("SHIPPINGPOINT") AS shippingpoint,
+       COUNT(*) AS cnt,
+       ROUND(COUNT(*) * 100.0 / (SELECT COUNT(*) FROM train), 1) AS pct
 FROM train
 WHERE CAST("SHIPPINGCONDITION" AS INT) BETWEEN 18 AND 20
 GROUP BY "PLANT"

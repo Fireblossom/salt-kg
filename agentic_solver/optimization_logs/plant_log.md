@@ -31,13 +31,17 @@
 ```sql
 -- LOOKUP1: SHIPPINGPOINT -> PLANT (primary key, 88 keys)
 SELECT "SHIPPINGPOINT",
-       MODE("PLANT") AS plant
+       MODE("PLANT") AS plant,
+       COUNT(*) AS cnt,
+       ROUND(COUNT(*) * 100.0 / (SELECT COUNT(*) FROM train), 1) AS pct
 FROM train
 GROUP BY "SHIPPINGPOINT"
 
 -- LOOKUP2: SALESORGANIZATION -> PLANT (fallback, 31 keys)
 SELECT "SALESORGANIZATION",
-       MODE("PLANT") AS plant
+       MODE("PLANT") AS plant,
+       COUNT(*) AS cnt,
+       ROUND(COUNT(*) * 100.0 / (SELECT COUNT(*) FROM train), 1) AS pct
 FROM train
 GROUP BY "SALESORGANIZATION"
 

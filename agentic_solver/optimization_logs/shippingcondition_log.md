@@ -71,13 +71,17 @@ Final script uses a simplified 2-level strategy:
 ```sql
 -- L1: (SOLDTOPARTY, SALESDOCUMENTTYPE, SHIPPINGPOINT) -> SHIPPINGCONDITION (32,967 keys)
 SELECT "SOLDTOPARTY" || '|' || "SALESDOCUMENTTYPE" || '|' || "SHIPPINGPOINT" AS key,
-       MODE("SHIPPINGCONDITION") AS shippingcondition
+       MODE("SHIPPINGCONDITION") AS shippingcondition,
+       COUNT(*) AS cnt,
+       ROUND(COUNT(*) * 100.0 / (SELECT COUNT(*) FROM train), 1) AS pct
 FROM train
 GROUP BY key
 
 -- L2: (SHIPTOPARTY, SALESDOCUMENTTYPE, SHIPPINGPOINT) -> SHIPPINGCONDITION
 SELECT "SHIPTOPARTY" || '|' || "SALESDOCUMENTTYPE" || '|' || "SHIPPINGPOINT" AS key,
-       MODE("SHIPPINGCONDITION") AS shippingcondition
+       MODE("SHIPPINGCONDITION") AS shippingcondition,
+       COUNT(*) AS cnt,
+       ROUND(COUNT(*) * 100.0 / (SELECT COUNT(*) FROM train), 1) AS pct
 FROM train
 GROUP BY key
 

@@ -31,13 +31,17 @@
 ```sql
 -- L1: SOLDTOPARTY + CUSTOMERPAYMENTTERMS -> SALESGROUP (17,616 keys)
 SELECT "SOLDTOPARTY" || '|' || "CUSTOMERPAYMENTTERMS" AS key,
-       MODE("SALESGROUP") AS salesgroup
+       MODE("SALESGROUP") AS salesgroup,
+       COUNT(*) AS cnt,
+       ROUND(COUNT(*) * 100.0 / (SELECT COUNT(*) FROM train), 1) AS pct
 FROM train
 GROUP BY key
 
 -- L2: SOLDTOPARTY -> SALESGROUP (fallback, 13,155 keys)
 SELECT "SOLDTOPARTY",
-       MODE("SALESGROUP") AS salesgroup
+       MODE("SALESGROUP") AS salesgroup,
+       COUNT(*) AS cnt,
+       ROUND(COUNT(*) * 100.0 / (SELECT COUNT(*) FROM train), 1) AS pct
 FROM train
 GROUP BY "SOLDTOPARTY"
 
