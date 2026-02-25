@@ -1,58 +1,58 @@
 """
-SALESGROUP Prediction Script - Complete Version
-
-Uses multi-level hierarchical lookup with complete mappings from training data.
-Accuracy: 71.34% on test set (vs 3.84% baseline)
+SALESGROUP Prediction - Drift-robust cascade with Sales Area signals
+Cascade:
+  SOLDTO+DT+ORG+CHANNEL+DIV (L0) →
+  SOLDTO+DT (L1) →
+  SOLDTO (L2) →
+  DT+ORG+CHANNEL+DIV (L3) →
+  ORG+CHANNEL+DIV (L4) →
+  ORG (L5) →
+  mode
 """
-
-import json
 import pandas as pd
+import json
 from pathlib import Path
 
-# Load mapping from JSON
-_mapping_file = Path(__file__).parent / 'salesgroup_mapping.json'
-if _mapping_file.exists():
-    with open(_mapping_file) as f:
-        _data = json.load(f)
-    PARTY_PAYMENT_LOOKUP = _data.get('SOLDTOPARTY_PAYMENT', {})
-    PARTY_LOOKUP = _data.get('SOLDTOPARTY', {})
-    GLOBAL_MODE = _data.get('mode', '999')
-else:
-    # Fallback - empty mappings
-    PARTY_PAYMENT_LOOKUP = {}
-    PARTY_LOOKUP = {}
-    GLOBAL_MODE = '999'
-
+_m = json.loads((Path(__file__).parent / 'salesgroup_mapping.json').read_text())
+L0 = _m['L0_SOLDTO_DT_SA']
+L1 = _m['L1_SOLDTO_DT']
+L2 = _m['L2_SOLDTO']
+L3 = _m['L3_DT_SA']
+L4 = _m['L4_SA']
+L5 = _m['L5_ORG']
+MODE = _m['mode']
 
 def predict_salesgroup(row):
-    """
-    Multi-factor hierarchical prediction for SALESGROUP.
-    
-    Lookup hierarchy:
-    1. SOLDTOPARTY + CUSTOMERPAYMENTTERMS (71% accuracy)
-    2. SOLDTOPARTY alone (68.8% accuracy)
-    3. Global mode fallback
-    
-    Business Logic:
-    - SOLDTOPARTY (customer) is the primary predictor
-    - CUSTOMERPAYMENTTERMS provides additional segmentation
-    """
-    def safe_get(field, default=''):
-        val = row.get(field)
-        return str(val).strip() if pd.notna(val) else default
+    def g(f):
+        v = row.get(f)
+        return str(v).strip() if pd.notna(v) else ''
 
-    party = safe_get('SOLDTOPARTY')
-    payment = safe_get('CUSTOMERPAYMENTTERMS')
+    soldto = g('SOLDTOPARTY')
+    dt = g('SALESDOCUMENTTYPE')
+    org = g('SALESORGANIZATION')
+    channel = g('DISTRIBUTIONCHANNEL')
+    div = g('ORGANIZATIONDIVISION')
 
-    # Level 1: SOLDTOPARTY + CUSTOMERPAYMENTTERMS
-    if party and payment:
-        key = f'{party}|{payment}'
-        if key in PARTY_PAYMENT_LOOKUP:
-            return PARTY_PAYMENT_LOOKUP[key]
+    # L0: SOLDTOPARTY + DOCTYPE + SALES AREA
+    k0 = f"{soldto}|{dt}|{org}|{channel}|{div}"
+    if k0 in L0: return L0[k0]
 
-    # Level 2: SOLDTOPARTY alone
-    if party and party in PARTY_LOOKUP:
-        return PARTY_LOOKUP[party]
+    # L1: SOLDTOPARTY + DOCTYPE
+    k1 = f"{soldto}|{dt}"
+    if k1 in L1: return L1[k1]
 
-    # Level 3: Global fallback
-    return GLOBAL_MODE
+    # L2: SOLDTOPARTY
+    if soldto in L2: return L2[soldto]
+
+    # L3: DOCTYPE + SALES AREA
+    k3 = f"{dt}|{org}|{channel}|{div}"
+    if k3 in L3: return L3[k3]
+
+    # L4: SALES AREA
+    k4 = f"{org}|{channel}|{div}"
+    if k4 in L4: return L4[k4]
+
+    # L5: ORG
+    if org in L5: return L5[org]
+
+    return MODE
