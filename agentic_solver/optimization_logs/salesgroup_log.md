@@ -173,7 +173,7 @@ The previous working cascade (`ms=3/2`) for SALESGROUP reached **69.393%** test 
 | L1 | SOLDTOPARTY | 2 | 11,723 | 1.99% |
 | L2 | SALESDOCUMENTTYPE × SALESORGANIZATION | 1 | 127 | 5.97% |
 | L3 | SALESORGANIZATION | 1 | 31 | 0.10% |
-| MODE | — | — | — | 0.12% |
+| MODE |  --  |  --  |  --  | 0.12% |
 
 **Interpretation**: ~92% of rows ended at `L0`, so global context had very limited influence.
 
@@ -238,7 +238,7 @@ Comparison of selected candidates:
 
 | Strategy | Overall | Seen | New | Delta vs baseline |
 |----------|---------|------|-----|-------------------|
-| Baseline (`3/2`) | 69.393% | 73.076% | 7.972% | — |
+| Baseline (`3/2`) | 69.393% | 73.076% | 7.972% |  --  |
 | One-line threshold (`2/1`) | 69.722% | 73.424% | 7.972% | +0.329 pp |
 | Sales Area cascade (`1/1`, current) | **69.998%** | **73.717%** | 7.972% | **+0.605 pp** |
 
@@ -293,6 +293,36 @@ Comparison of selected candidates:
 | L4_SA | 39 |
 | L5_ORG | 31 |
 | mode | `999` |
+
+---
+
+## Drift Root Cause Analysis
+
+To understand *why* SALESGROUP drifts, we checked whether other fields also changed for the 2,164 drifted customers (sample of 500):
+
+| Field | Same | Changed |
+|---|---|---|
+| ORGANIZATIONDIVISION (product line) | **100.0%** | 0.0% |
+| DISTRIBUTIONCHANNEL | 99.6% | 0.4% |
+| CUSTOMERPAYMENTTERMS | 81.0% | 19.0% |
+| SALESDOCUMENTTYPE | 79.4% | 20.6% |
+| Sales Area (ORG+CH+DIV) | 76.0% | 24.0% |
+| HEADERINCOTERMS | 71.2% | 28.8% |
+| SHIPPINGCONDITION | 58.2% | **41.8%** |
+
+**Key finding**: Product line (Division) never changes  --  drift is not driven by customers switching products. 76% of drifted customers kept the same Sales Area entirely. The dominant pattern is **internal sales team restructuring** within the same organizational context.
+
+Top SALESGROUP transitions confirm systematic reorgs (many-to-few consolidation):
+
+| From | To | Customers |
+|---|---|---|
+| 213 | 146 | 46 |
+| 670 | 146 | 44 |
+| 938 | 019 | 42 |
+| 421 | 489 | 41 |
+| 588 | 489 | 40 |
+
+**Implication for improvement**: KG or LLM knowledge cannot help here  --  the drift is caused by management decisions (sales team reorgs) that are not encoded in business logic, configuration, or code. The remaining ~30% error is an irreducible floor for any method that lacks foreknowledge of organizational changes. The only viable approach would be temporal strategies (recency weighting or online learning).
 
 ---
 

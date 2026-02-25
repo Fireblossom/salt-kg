@@ -186,7 +186,7 @@ salt-kg/
 ### Current Limitations
 
 - **Cold start problem**: Prediction requires seeing a customer/combination in training data. Truly new customers fall through to organization-level defaults.
-- **Concept drift**: Customers change behavior over time (e.g., switching Incoterms or Sales Groups). Our analysis found that 38% of seen customers drifted between train and test periods, capping accuracy for fields like SALESGROUP at ~70% regardless of cascade design.
+- **Concept drift**: SALT-KG uses a temporal train/test split at **2020-07-01** (train: 2018-01-02 to 2020-06-30, 1.9M rows; test: 2020-07-01 to 2020-12-31, 403K rows). This mirrors real-world deployment where models are trained on historical data, but it also exposes concept drift: customers change payment terms, organizations restructure sales groups, and trade agreements shift Incoterms preferences over time. Our analysis found that 38% of seen customers changed their dominant SALESGROUP between the two periods, capping accuracy at ~70% regardless of cascade design. A random split would mask this problem and overestimate real-world performance.
 - **Statistical discovery, not causal understanding**: Business rules are reverse-engineered from transaction patterns via SQL analysis, not read from source logic. This means we discover *what* the system does, but not *why*.
 
 ### Connection to FMSLT
@@ -195,13 +195,13 @@ The [Foundation Models for Semantically Linked Tables (FMSLT)](https://arxiv.org
 
 | SLT Layer | What SALT-KG Provides | What Is Missing |
 |---|---|---|
-| **Relational Data** | Full | — |
-| **Declarative Knowledge** (semantic) | Partial | Business rules, condition records |
+| **Relational Data** | Full |  --  |
+| **Declarative Knowledge** (semantic) | Rich | Field definitions + business rule semantics (e.g., Incoterms risk transfer rules, Sales Area structure). Missing: instance-level determination rules |
 | **Declarative Knowledge** (rules) | Missing | SAP Condition Tables, Access Sequences |
 | **Procedural Knowledge** (code) | Missing | ABAP determination logic, validation scripts |
-| **World Knowledge** | Partial | — |
+| **World Knowledge** | Implicit | LLM provides general domain knowledge; coverage and accuracy are unverifiable |
 
-Our Agentic Scripting Solver **inadvertently performs a subset of the FMSLT vision**: we use LLM world knowledge + KG semantics to generate initial scripts (world + declarative layers), then use DuckDB SQL auditing to *reverse-engineer* hidden business rules from transaction data (a statistical proxy for the missing procedural layer). Our cascade lookups effectively *simulate* SAP's Condition Technique — but through frequency analysis rather than direct code comprehension.
+Our Agentic Scripting Solver **inadvertently performs a subset of the FMSLT vision**: we use LLM world knowledge + KG semantics to generate initial scripts (world + declarative layers), then use DuckDB SQL auditing to *reverse-engineer* hidden business rules from transaction data (a statistical proxy for the missing procedural layer). Our cascade lookups effectively *simulate* SAP's Condition Technique  --  but through frequency analysis rather than direct code comprehension.
 
 This confirms the FMSLT thesis: if procedural knowledge (e.g., ABAP determination procedures) were available, the statistical discovery phase could be largely bypassed, and accuracy ceilings imposed by concept drift could be better addressed through explicit rule awareness.
 
@@ -209,10 +209,10 @@ This confirms the FMSLT thesis: if procedural knowledge (e.g., ABAP determinatio
 
 To close the gap between what SALT-KG provides and what FMSLT envisions, future work could:
 
-1. **Add Condition Records** — Include SAP determination procedure configurations for each target field, enabling direct rule application instead of statistical mode lookups
-2. **Include Master Data snapshots** — Customer master records (KNA1/KNVV) and material masters (MARA/MARC) would eliminate the need to infer customer-level defaults from transaction patterns
-3. **Embed procedural logic** — Excerpts of ABAP validation/determination code would allow LLMs to reason causally about field values (e.g., "SHIPPINGCONDITION ≥ 94 triggers virtual shipping") rather than discovering these rules through SQL auditing
-4. **Temporal-aware cascades** — Incorporate recency weighting or time-windowed lookups to handle concept drift, since the current mode-based approach treats all training data equally regardless of age
+1. **Add Condition Records**  --  Include SAP determination procedure configurations for each target field, enabling direct rule application instead of statistical mode lookups
+2. **Include Master Data snapshots**  --  Customer master records (KNA1/KNVV) and material masters (MARA/MARC) would eliminate the need to infer customer-level defaults from transaction patterns
+3. **Embed procedural logic**  --  Excerpts of ABAP validation/determination code would allow LLMs to reason causally about field values (e.g., "SHIPPINGCONDITION ≥ 94 triggers virtual shipping") rather than discovering these rules through SQL auditing
+4. **Temporal-aware cascades**  --  Incorporate recency weighting or time-windowed lookups to handle concept drift, since the current mode-based approach treats all training data equally regardless of age
 
 # Original SALT-KG Dataset
 

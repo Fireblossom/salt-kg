@@ -257,6 +257,38 @@ Mapping size:
 
 ---
 
+## Drift Root Cause Analysis
+
+SHIPPINGCONDITION has the **highest drift rate** of all target fields: 2,436 customers (43.7% of 5,576 seen) changed their dominant value between train and test.
+
+For these drifted customers, which other fields also changed?
+
+| Field | Same | Changed |
+|---|---|---|
+| ORGANIZATIONDIVISION | 100.0% | 0.0% |
+| DISTRIBUTIONCHANNEL | 99.4% | 0.6% |
+| CUSTOMERPAYMENTTERMS | 76.4% | 23.6% |
+| SALESORGANIZATION | 69.2% | 30.8% |
+| SALESGROUP | 62.8% | 37.2% |
+| HEADERINCOTERMS | 58.6% | 41.4% |
+| SALESDOCUMENTTYPE | 58.0% | **42.0%** |
+
+Unlike SALESGROUP (where Division never changes), SC drift shows strong co-variance with DocType changes (42%) and Incoterms changes (41.4%). This suggests SC drift is often tied to changes in **order processing patterns** (different document types → different shipping workflows), not just internal reorgs.
+
+Top transitions:
+
+| From | To | Customers |
+|---|---|---|
+| 99 | 01 | 302 |
+| 98 | 99 | 201 |
+| 99 | 98 | 145 |
+| 01 | 99 | 136 |
+| 95 | 99 | 108 |
+
+The dominant 99↔01 transition reflects the boundary between standard physical shipping (99) and special logistics (01). The 98↔99 transitions confirm the known ambiguity between these adjacent SC values (33% of all current errors stem from 98/99 confusion, see Experiment 4).
+
+---
+
 ## Decision
 
 Adopt **with_plant** as the current SHIPPINGCONDITION strategy.

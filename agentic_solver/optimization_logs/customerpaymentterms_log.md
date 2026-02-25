@@ -80,3 +80,35 @@ SELECT MODE("CUSTOMERPAYMENTTERMS") FROM train
 **Global mode**: `'32'`
 
 > Script flow: For each row, first try SOLDTOPARTY (customer-specific terms). If unseen customer, fall back to SALESORGANIZATION (regional default). If both miss, return `'32'`.
+
+---
+
+## Drift Root Cause Analysis
+
+997 customers (17.9% of 5,576 seen) changed their dominant payment terms between train and test  --  the lowest drift rate of the 5 cascade fields. The high MRR (0.852) reflects this stability: payment terms are contractually anchored and rarely renegotiated.
+
+For the drifted customers:
+
+| Field | Same | Changed |
+|---|---|---|
+| ORGANIZATIONDIVISION | 100.0% | 0.0% |
+| DISTRIBUTIONCHANNEL | 99.4% | 0.6% |
+| HEADERINCOTERMS | 62.2% | 37.8% |
+| SALESORGANIZATION | 60.4% | **39.6%** |
+| SALESDOCUMENTTYPE | 60.4% | **39.6%** |
+| SALESGROUP | 59.4% | 40.6% |
+| SHIPPINGCONDITION | 42.6% | 57.4% |
+
+When payment terms do drift, they co-occur with SalesOrg and DocType changes (~40% each), suggesting these customers underwent broader contractual or organizational changes, not just a PT renegotiation in isolation.
+
+Top transitions:
+
+| From | To | Customers |
+|---|---|---|
+| 54 | 03 | 87 |
+| 03 | 32 | 64 |
+| 03 | 54 | 60 |
+| 54 | 32 | 46 |
+| 54 | 00 | 29 |
+
+**Why KG/LLM cannot close the gap further**: The KG tells us "CUSTOMERPAYMENTTERMS = key for payment terms composed of cash discount percentages and payment periods," but it does not contain the actual customer master data (KNVV.ZTERM) that determines which customer gets which terms. Our cascade already correctly uses SOLDTOPARTY as the primary anchor  --  matching the SAP determination logic. The remaining 15% error comes from customers whose contractual terms changed after the training cutoff.
