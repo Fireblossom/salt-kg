@@ -15,7 +15,7 @@ I developed a novel prediction approach that uses **LLM-generated Python scripts
 
 ### Results: MRR Comparison
 
-| Target Field | Ours | SALT Baseline Best | SALT-KG Best | vs Baseline | vs SALT-KG |
+| Target Field | Mine | SALT Baseline Best | SALT-KG Best | vs Baseline | vs SALT-KG |
 |--------------|------|---------------|--------------|-------------|------------|
 | SALESOFFICE | **0.997** | 0.99 | 1.00 | +0.007 | ≈ |
 | PLANT | **0.993** | 0.99 | 1.00 | +0.003 | ≈ |
@@ -34,77 +34,44 @@ I developed a novel prediction approach that uses **LLM-generated Python scripts
 
 Instead of embedding-based similarity matching, I use:
 1. **Statistical profiling**: Find the mode (most frequent value) per feature combination
-2. **Hierarchical fallback**: When specific lookup misses, fall back to broader patterns  
-3. **Business rule discovery**: Identify deterministic relationships (e.g., `SHIPPINGCONDITION≥94 → virtual ShippingPoint`)
+2. **Hierarchical fallback**: When specific lookup misses, fall back to broader patterns
+3. **Business rule discovery**: Identify deterministic relationships (e.g., `SHIPPINGCONDITION>=94` signals virtual ShippingPoint)
 
-**Why This Works**:
-- SAP ERP has strong configuration-driven determinism
-- Many fields are master data relationships (not truly "predictive")
-- Transactional patterns follow business process rules
+**Why this works**: SAP ERP has strong configuration-driven determinism. Many fields are master data relationships (not truly "predictive"), and transactional patterns follow business process rules.
 
 ### Key Insights Discovered
 
 1. **SALESOFFICE class imbalance**: 99.91% of test data is value `0010`, making any method appear ~100% accurate
-2. **SHIPPINGCONDITION ≥94**: Indicates virtual/non-physical shipping points
-3. **Incoterms cascade**: Hierarchical fallback (SOLDTO → SHIPTO → ORG) improves coverage
+2. **SHIPPINGCONDITION >=94**: Indicates virtual/non-physical shipping points
+3. **Incoterms cascade**: Hierarchical fallback (SOLDTO, SHIPTO, ORG) improves coverage
 
 ### Role of the Knowledge Graph
 
-The KG plays an **indirect** role in this approach. It provides schema-level semantic context (e.g., "DDP = Delivered Duty Paid", "SHIPPINGCONDITION describes logistics terms") that helps the LLM understand SAP domain concepts during initial script generation. However, the KG does not contain instance-level mappings (e.g., "Customer X always uses payment term 32").
+The KG plays an **indirect** role. It provides schema-level semantic context (e.g., "DDP = Delivered Duty Paid", Incoterms risk transfer rules) that helps the LLM understand SAP domain concepts during initial script generation. However, the KG does not contain instance-level mappings (e.g., "Customer X always uses payment term 32").
 
 The final prediction performance comes from **statistical lookup tables** extracted from training data via DuckDB SQL analysis, not from KG entity relationships. Once scripts are optimized and saved, the KG is no longer involved at prediction time.
 
 ```
-KG (semantic context) → LLM generates initial script → DuckDB SQL analysis
-→ iterative improvement → saved_scripts/ (KG no longer needed)
-```
-
----
-
-## Quick Start
-
-```bash
-# Install dependencies
-pip install -r requirements.txt
-
-# Run demo (uses mock LLM - no API key needed)
-python demo.py
-
-# With real LLM
-python demo.py --provider anthropic  # requires ANTHROPIC_API_KEY
-
-# Run script improvement with SQL analysis
-python demo.py --improve --target CUSTOMERPAYMENTTERMS --provider anthropic
-```
-
-**Example output:**
-```
-PREDICTING: SALESGROUP
-Generating prediction script...
-Generated Code:
-  def predict(row):
-      return lookup_table.get((row['SOLDTOPARTY'], row['SALESDOCUMENTTYPE']))
-Accuracy: 76.0%
+KG (semantic context) -> LLM generates initial script -> DuckDB SQL analysis
+-> iterative improvement -> saved_scripts/ (KG no longer needed)
 ```
 
 ---
 
 ## Workflow
 
-The solver has three distinct phases. Each phase has its own tools, and the output of one feeds into the next:
-
 ```
 Phase 1: EXPLORE                Phase 2: BUILD              Phase 3: PREDICT
 (discover rules via LLM+SQL)    (codify into lookups)       (apply at inference)
 
 demo.py --improve               build_mappings.py           predictor.py
-  ├─ script_improver.py           │                           ├─ saved_scripts/*.py
-  ├─ duckdb_analyzer.py           │                           └─ saved_scripts/*.json
-  └─ kg_loader.py                 │
-         │                        │                                   │
-         ▼                        ▼                                   ▼
-  "SOLDTO×DT×ORG×SC         *_mapping.json                   predictions on
-   is a good cascade"        (lookup tables)                  new test data
+  |-- script_improver.py           |                           |-- saved_scripts/*.py
+  |-- duckdb_analyzer.py           |                           \-- saved_scripts/*.json
+  \-- kg_loader.py                 |
+         |                         |                                   |
+         v                         v                                   v
+  "SOLDTO x DT x ORG x SC     *_mapping.json                   predictions on
+   is a good cascade"          (lookup tables)                  new test data
 ```
 
 ### Phase 1: Explore (LLM-driven discovery)
@@ -113,9 +80,7 @@ demo.py --improve               build_mappings.py           predictor.py
 python demo.py --improve --target CUSTOMERPAYMENTTERMS --provider anthropic
 ```
 
-The LLM writes SQL queries via `duckdb_analyzer.py` to discover data patterns (e.g., "SHIPPINGCONDITION is the key discriminator for Incoterms"). The KG provides semantic context (e.g., "DDP = Delivered Duty Paid"). Results are logged in `optimization_logs/`.
-
-**Key files:** `script_improver.py`, `duckdb_analyzer.py`, `kg_loader.py`
+The LLM writes SQL queries via `duckdb_analyzer.py` to discover data patterns (e.g., "SHIPPINGCONDITION is the key discriminator for Incoterms"). The KG provides semantic context (e.g., "DDP = Delivered Duty Paid", Incoterms risk transfer rules), but does not contain instance-level mappings. Results are logged in `optimization_logs/`.
 
 ### Phase 2: Build (codify discoveries into lookup tables)
 
@@ -123,9 +88,7 @@ The LLM writes SQL queries via `duckdb_analyzer.py` to discover data patterns (e
 python agentic_solver/build_mappings.py
 ```
 
-Once cascade strategies are finalized, this script reads training data and generates all lookup JSON files in one step (~2 seconds via DuckDB). The cascade configurations and minimum support thresholds inside this script are the **codified result** of Phase 1 exploration.
-
-**Key file:** `build_mappings.py` → outputs `saved_scripts/*_mapping.json`
+Once cascade strategies are finalized, this script reads training data and generates all lookup JSON files in one step (~2 seconds via DuckDB). The cascade configurations inside this script are the **codified result** of Phase 1 exploration.
 
 | Output File | Field | Levels |
 |---|---|---|
@@ -141,11 +104,9 @@ Once cascade strategies are finalized, this script reads training data and gener
 python demo.py  # runs saved scripts on test data
 ```
 
-Each `saved_scripts/*.py` contains a `predict_xxx()` function that loads its `*_mapping.json` and applies the cascade lookup at prediction time. No LLM or KG needed at this stage.
+Each `saved_scripts/*.py` loads its `*_mapping.json` and applies the cascade lookup. No LLM or KG needed at this stage.
 
-**Key files:** `predictor.py`, `saved_scripts/*.py`, `saved_scripts/*.json`
-
-> **Note:** Phase 1 → Phase 2 is a manual step: you read the exploration logs and encode the best cascade strategy into `build_mappings.py`. Fully automating this bridge is a potential future improvement.
+> **Note:** Phase 1 to Phase 2 is a manual step: you read the exploration logs and encode the best cascade strategy into `build_mappings.py`. Fully automating this bridge is a potential future improvement.
 
 ---
 
@@ -153,30 +114,25 @@ Each `saved_scripts/*.py` contains a `predict_xxx()` function that loads its `*_
 
 ```
 salt-kg/
-├── agentic_solver/
-│   │
-│   │  Phase 1: Explore
-│   ├── script_generator.py      # LLM-based script generation
-│   ├── script_improver.py       # Iterative improvement agent
-│   ├── duckdb_analyzer.py       # SQL-based pattern analysis
-│   ├── kg_loader.py             # Knowledge Graph context loader
-│   ├── script_executor.py       # Safe script execution sandbox
-│   │
-│   │  Phase 2: Build
-│   ├── build_mappings.py        # One-step mapping builder (all fields)
-│   │
-│   │  Phase 3: Predict
-│   ├── predictor.py             # Main predictor class (sklearn-like API)
-│   ├── saved_scripts/           # Prediction functions + lookup tables (JSON)
-│   │
-│   │  Documentation
-│   └── optimization_logs/       # Per-field analysis logs with SQL queries & results
-│
-├── data/
-│   ├── salt/                    # Tabular data (parquet)
-│   └── salt-kg/                 # Knowledge Graph metadata (JSON)
-├── demo.py                      # Entry point (explore / predict)
-└── requirements.txt
+|-- agentic_solver/
+|   |  Phase 1: Explore
+|   |-- script_generator.py      # LLM-based script generation
+|   |-- script_improver.py       # Iterative improvement agent
+|   |-- duckdb_analyzer.py       # SQL-based pattern analysis
+|   |-- kg_loader.py             # Knowledge Graph context loader
+|   |-- script_executor.py       # Safe script execution sandbox
+|   |  Phase 2: Build
+|   |-- build_mappings.py        # One-step mapping builder (all fields)
+|   |  Phase 3: Predict
+|   |-- predictor.py             # Main predictor class (sklearn-like API)
+|   |-- saved_scripts/           # Prediction functions + lookup tables (JSON)
+|   |  Documentation
+|   \-- optimization_logs/       # Per-field analysis logs with SQL queries & results
+|-- data/
+|   |-- salt/                    # Tabular data (parquet)
+|   \-- salt-kg/                 # Knowledge Graph metadata (JSON)
+|-- demo.py                      # Entry point (explore / predict)
+\-- requirements.txt
 ```
 
 ---
@@ -186,8 +142,8 @@ salt-kg/
 ### Current Limitations
 
 - **Cold start problem**: Prediction requires seeing a customer/combination in training data. Truly new customers fall through to organization-level defaults.
-- **Concept drift**: SALT-KG uses a temporal train/test split at **2020-07-01** (train: 2018-01-02 to 2020-06-30, 1.9M rows; test: 2020-07-01 to 2020-12-31, 403K rows). This mirrors real-world deployment where models are trained on historical data, but it also exposes concept drift: customers change payment terms, organizations restructure sales groups, and trade agreements shift Incoterms preferences over time. Our analysis found that 38% of seen customers changed their dominant SALESGROUP between the two periods, capping accuracy at ~70% regardless of cascade design. A random split would mask this problem and overestimate real-world performance.
-- **Statistical discovery, not causal understanding**: Business rules are reverse-engineered from transaction patterns via SQL analysis, not read from source logic. This means we discover *what* the system does, but not *why*.
+- **Concept drift**: SALT-KG uses a temporal train/test split at **2020-07-01** (train: 2018-01-02 to 2020-06-30, 1.9M rows; test: 2020-07-01 to 2020-12-31, 403K rows). This mirrors real-world deployment where models are trained on historical data, but it also exposes concept drift: customers change payment terms, organizations restructure sales groups, and trade agreements shift Incoterms preferences over time. My analysis found that 38% of seen customers changed their dominant SALESGROUP between the two periods, capping accuracy at ~70% regardless of cascade design. A random split would mask this problem and overestimate real-world performance.
+- **Statistical discovery, not causal understanding**: Business rules are reverse-engineered from transaction patterns via SQL analysis, not read from source logic. This means I discover *what* the system does, but not *why*.
 
 ### Connection to FMSLT
 
@@ -195,28 +151,26 @@ The [Foundation Models for Semantically Linked Tables (FMSLT)](https://arxiv.org
 
 | SLT Layer | What SALT-KG Provides | What Is Missing |
 |---|---|---|
-| **Relational Data** | Full |  --  |
+| **Relational Data** | Full | -- |
 | **Declarative Knowledge** (semantic) | Rich | Field definitions + business rule semantics (e.g., Incoterms risk transfer rules, Sales Area structure). Missing: instance-level determination rules |
 | **Declarative Knowledge** (rules) | Missing | SAP Condition Tables, Access Sequences |
 | **Procedural Knowledge** (code) | Missing | ABAP determination logic, validation scripts |
 | **World Knowledge** | Implicit | LLM provides general domain knowledge; coverage and accuracy are unverifiable |
 
-Our Agentic Scripting Solver **inadvertently performs a subset of the FMSLT vision**: we use LLM world knowledge + KG semantics to generate initial scripts (world + declarative layers), then use DuckDB SQL auditing to *reverse-engineer* hidden business rules from transaction data (a statistical proxy for the missing procedural layer). Our cascade lookups effectively *simulate* SAP's Condition Technique  --  but through frequency analysis rather than direct code comprehension.
-
-This confirms the FMSLT thesis: if procedural knowledge (e.g., ABAP determination procedures) were available, the statistical discovery phase could be largely bypassed, and accuracy ceilings imposed by concept drift could be better addressed through explicit rule awareness.
+My Agentic Scripting Solver **inadvertently performs a subset of the FMSLT vision**: I use LLM world knowledge + KG semantics to generate initial scripts (world + declarative layers), then use DuckDB SQL auditing to *reverse-engineer* hidden business rules from transaction data (a statistical proxy for the missing procedural layer). My cascade lookups effectively *simulate* SAP's Condition Technique, but through frequency analysis rather than direct code comprehension.
 
 ### Roadmap
 
-To close the gap between what SALT-KG provides and what FMSLT envisions, future work could:
+To close the gap between what SALT-KG provides and what FMSLT proposes, future work could:
 
-1. **Add Condition Records**  --  Include SAP determination procedure configurations for each target field, enabling direct rule application instead of statistical mode lookups
-2. **Include Master Data snapshots**  --  Customer master records (KNA1/KNVV) and material masters (MARA/MARC) would eliminate the need to infer customer-level defaults from transaction patterns
-3. **Embed procedural logic**  --  Excerpts of ABAP validation/determination code would allow LLMs to reason causally about field values (e.g., "SHIPPINGCONDITION ≥ 94 triggers virtual shipping") rather than discovering these rules through SQL auditing
-4. **Temporal-aware cascades**  --  Incorporate recency weighting or time-windowed lookups to handle concept drift, since the current mode-based approach treats all training data equally regardless of age
+1. **Add Condition Records**: Include SAP determination procedure configurations for each target field, enabling direct rule application instead of statistical mode lookups
+2. **Include Master Data snapshots**: Customer master records (KNA1/KNVV) and material masters (MARA/MARC) would eliminate the need to infer customer-level defaults from transaction patterns
+3. **Embed procedural logic**: Excerpts of ABAP validation/determination code would allow LLMs to reason causally about field values (e.g., "SHIPPINGCONDITION ≥ 94 triggers virtual shipping") rather than discovering these rules through SQL auditing
+4. **Temporal-aware cascades**: Incorporate recency weighting or time-windowed lookups to handle concept drift, since the current mode-based approach treats all training data equally regardless of age
 
 # Original SALT-KG Dataset
 
-This repository is based on the **SALT-KG benchmark** from SAP Research, presented at NeurIPS'25 Table Representation Workshop.
+This repository is based on the **SALT-KG benchmark** from SAP Research, presented at EeurIPS'25 Workshop.
 
 ## Abstract
 
