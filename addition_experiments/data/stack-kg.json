@@ -1,0 +1,669 @@
+{
+    "dataset": "rel-stack",
+    "source": "StackOverflow Data Dump (2024). Badge rules from https://stackoverflow.com/help/badges",
+    "description": "A relational dataset from StackOverflow containing 255K users, 334K posts, 463K badges, 1.3M votes, 624K comments, and 1.2M post history events. Badge Class values: 0=Gold, 1=Silver, 2=Bronze. RelBench strips badge Name and TagBased columns, retaining only (Id, UserId, Date).",
+    "tables": {
+        "badges": {
+            "description": "Badge awards to users. Each row is one badge instance awarded to a user at a specific time. In the original SO data dump this table includes Name, Class, and TagBased columns, but RelBench retains only Id, UserId, and Date.",
+            "row_count": 463463,
+            "primary_key": "Id",
+            "foreign_keys": {
+                "UserId": "users"
+            },
+            "columns": {
+                "Id": "Unique badge instance identifier (primary key)",
+                "UserId": "FK to users — the user who earned this badge",
+                "Date": "Timestamp when the badge was awarded"
+            },
+            "note": "Class (0=Gold, 1=Silver, 2=Bronze) is the prediction target in the badges-class task. Name and TagBased columns are stripped by RelBench."
+        },
+        "users": {
+            "description": "User profiles with registration metadata.",
+            "row_count": 255360,
+            "primary_key": "Id",
+            "foreign_keys": {},
+            "columns": {
+                "Id": "Unique user identifier (primary key)",
+                "AccountId": "Network-wide account identifier",
+                "DisplayName": "User's display name",
+                "Location": "Self-reported location",
+                "ProfileImageUrl": "URL to profile image",
+                "WebsiteUrl": "User's website URL",
+                "AboutMe": "User bio (About Me section)",
+                "CreationDate": "Account creation timestamp"
+            }
+        },
+        "posts": {
+            "description": "Questions and answers. PostTypeId=1 for questions, PostTypeId=2 for answers.",
+            "row_count": 333893,
+            "primary_key": "Id",
+            "foreign_keys": {
+                "OwnerUserId": "users",
+                "ParentId": "posts"
+            },
+            "columns": {
+                "Id": "Unique post identifier (primary key)",
+                "OwnerUserId": "FK to users — post author",
+                "PostTypeId": "1=Question, 2=Answer, 4=TagWiki, 5=TagWikiExcerpt, 6=ModNomination",
+                "ParentId": "FK to posts — for answers, the question Id",
+                "OwnerDisplayName": "Display name at time of posting",
+                "Title": "Question title (null for answers)",
+                "Tags": "Comma-separated tags (questions only)",
+                "ContentLicense": "Content license type",
+                "Body": "Post body (HTML)",
+                "CreationDate": "Post creation timestamp"
+            }
+        },
+        "votes": {
+            "description": "Votes on posts. VoteTypeId encodes the vote action.",
+            "row_count": 1317876,
+            "primary_key": "Id",
+            "foreign_keys": {
+                "PostId": "posts",
+                "UserId": "users"
+            },
+            "columns": {
+                "Id": "Unique vote identifier (primary key)",
+                "UserId": "FK to users — the voter",
+                "PostId": "FK to posts — the post being voted on",
+                "VoteTypeId": "1=AcceptedByOriginator, 2=UpMod, 3=DownMod, 5=Favorite, 6=Offensive, 7=Close, 8=Reopen, 9=BountyStart, 10=BountyClose, 11=Deletion, 15=ModReview, 16=ApproveEditSuggestion",
+                "CreationDate": "Vote timestamp"
+            }
+        },
+        "comments": {
+            "description": "Comments on posts.",
+            "row_count": 623967,
+            "primary_key": "Id",
+            "foreign_keys": {
+                "UserId": "users",
+                "PostId": "posts"
+            },
+            "columns": {
+                "Id": "Unique comment identifier (primary key)",
+                "PostId": "FK to posts — the post being commented on",
+                "UserId": "FK to users — the commenter",
+                "ContentLicense": "Content license type",
+                "UserDisplayName": "Display name at time of commenting",
+                "Text": "Comment text",
+                "CreationDate": "Comment timestamp"
+            }
+        },
+        "postHistory": {
+            "description": "Edit history of posts.",
+            "row_count": 1175368,
+            "primary_key": "Id",
+            "foreign_keys": {
+                "PostId": "posts",
+                "UserId": "users"
+            },
+            "columns": {
+                "Id": "Unique edit identifier (primary key)",
+                "PostId": "FK to posts — the edited post",
+                "UserId": "FK to users — the editor",
+                "PostHistoryTypeId": "Type of edit (1=InitialTitle, 2=InitialBody, 3=InitialTags, 4=EditTitle, 5=EditBody, 6=EditTags, etc.)",
+                "UserDisplayName": "Editor display name",
+                "ContentLicense": "Content license type",
+                "RevisionGUID": "Unique revision identifier",
+                "Text": "Edit content",
+                "Comment": "Edit summary",
+                "CreationDate": "Edit timestamp"
+            }
+        },
+        "postLinks": {
+            "description": "Links between related posts (duplicate, linked).",
+            "row_count": 77337,
+            "primary_key": "Id",
+            "foreign_keys": {
+                "PostId": "posts",
+                "RelatedPostId": "posts"
+            },
+            "columns": {
+                "Id": "Unique link identifier (primary key)",
+                "PostId": "FK to posts — source post",
+                "RelatedPostId": "FK to posts — target post",
+                "LinkTypeId": "1=Linked, 3=Duplicate",
+                "CreationDate": "Link creation timestamp"
+            }
+        }
+    },
+    "badge_rules": {
+        "description": "Official StackOverflow badge award criteria. Badge class: Gold=0, Silver=1, Bronze=2. These rules are the ground truth that the badges-class task asks models to predict, but RelBench strips the badge Name column, making the rules unobservable from the data alone.",
+        "source": "https://stackoverflow.com/help/badges",
+        "categories": {
+            "general": [
+                {
+                    "name": "Informed",
+                    "class": 2,
+                    "criteria": "Read the entire tour page."
+                },
+                {
+                    "name": "Analytical",
+                    "class": 2,
+                    "criteria": "Visited every section of the FAQ."
+                },
+                {
+                    "name": "Not a Robot",
+                    "class": 1,
+                    "criteria": "Met a Stack Overflow employee at an event where SO was organizer or participant with 50+ attendees."
+                }
+            ],
+            "questions": [
+                {
+                    "name": "Student",
+                    "class": 2,
+                    "criteria": "First question with score of 1 or more."
+                },
+                {
+                    "name": "Curious",
+                    "class": 2,
+                    "criteria": "Ask a well-received question on 5 separate days, and maintain a positive question record."
+                },
+                {
+                    "name": "Inquisitive",
+                    "class": 1,
+                    "criteria": "Ask a well-received question on 30 separate days, and maintain a positive question record."
+                },
+                {
+                    "name": "Socratic",
+                    "class": 0,
+                    "criteria": "Ask a well-received question on 100 separate days, and maintain a positive question record."
+                },
+                {
+                    "name": "Nice Question",
+                    "class": 2,
+                    "criteria": "Question score of 10 or more."
+                },
+                {
+                    "name": "Good Question",
+                    "class": 1,
+                    "criteria": "Question score of 25 or more."
+                },
+                {
+                    "name": "Great Question",
+                    "class": 0,
+                    "criteria": "Question score of 100 or more."
+                },
+                {
+                    "name": "Popular Question",
+                    "class": 2,
+                    "criteria": "Question with 1,000 views."
+                },
+                {
+                    "name": "Notable Question",
+                    "class": 1,
+                    "criteria": "Question with 2,500 views."
+                },
+                {
+                    "name": "Famous Question",
+                    "class": 0,
+                    "criteria": "Question with 10,000 views."
+                },
+                {
+                    "name": "Favorite Question",
+                    "class": 1,
+                    "criteria": "Question saved by 25 users."
+                },
+                {
+                    "name": "Stellar Question",
+                    "class": 0,
+                    "criteria": "Question saved by 100 users."
+                },
+                {
+                    "name": "Scholar",
+                    "class": 2,
+                    "criteria": "Ask a question and accept an answer."
+                },
+                {
+                    "name": "Altruist",
+                    "class": 2,
+                    "criteria": "First bounty you manually award on another person's question."
+                },
+                {
+                    "name": "Benefactor",
+                    "class": 2,
+                    "criteria": "First bounty you manually award on your own question."
+                },
+                {
+                    "name": "Investor",
+                    "class": 2,
+                    "criteria": "First bounty you offer on another person's question."
+                },
+                {
+                    "name": "Promoter",
+                    "class": 2,
+                    "criteria": "First bounty you offer on your own question."
+                },
+                {
+                    "name": "Tumbleweed",
+                    "class": 2,
+                    "criteria": "Asked a question with zero score, no answers, no comments, and low views for a week."
+                }
+            ],
+            "answers": [
+                {
+                    "name": "Teacher",
+                    "class": 2,
+                    "criteria": "Answer a question with score of 1 or more."
+                },
+                {
+                    "name": "Nice Answer",
+                    "class": 2,
+                    "criteria": "Answer score of 10 or more."
+                },
+                {
+                    "name": "Good Answer",
+                    "class": 1,
+                    "criteria": "Answer score of 25 or more."
+                },
+                {
+                    "name": "Great Answer",
+                    "class": 0,
+                    "criteria": "Answer score of 100 or more."
+                },
+                {
+                    "name": "Enlightened",
+                    "class": 1,
+                    "criteria": "First to answer and accepted with score of 10 or more."
+                },
+                {
+                    "name": "Guru",
+                    "class": 1,
+                    "criteria": "Accepted answer and score of 40 or more."
+                },
+                {
+                    "name": "Populist",
+                    "class": 0,
+                    "criteria": "Highest scoring answer that outscored an accepted answer with score of more than 10 by more than 2x."
+                },
+                {
+                    "name": "Reversal",
+                    "class": 0,
+                    "criteria": "Provide an answer of +20 score to a question of -5 score."
+                },
+                {
+                    "name": "Self-Learner",
+                    "class": 2,
+                    "criteria": "Answer your own question with score of 3 or more."
+                },
+                {
+                    "name": "Revival",
+                    "class": 2,
+                    "criteria": "Answer more than 30 days after a question was asked as first answer scoring 2 or more."
+                },
+                {
+                    "name": "Necromancer",
+                    "class": 1,
+                    "criteria": "Answer a question more than 60 days later with score of 5 or more."
+                },
+                {
+                    "name": "Explainer",
+                    "class": 2,
+                    "criteria": "Edit and answer 1 question (both within 12 hours, answer score > 0)."
+                },
+                {
+                    "name": "Refiner",
+                    "class": 1,
+                    "criteria": "Edit and answer 50 questions (both within 12 hours, answer score > 0)."
+                },
+                {
+                    "name": "Illuminator",
+                    "class": 0,
+                    "criteria": "Edit and answer 500 questions (both within 12 hours, answer score > 0)."
+                },
+                {
+                    "name": "Favorite Answer",
+                    "class": 1,
+                    "criteria": "Answer saved by 25 users."
+                },
+                {
+                    "name": "Stellar Answer",
+                    "class": 0,
+                    "criteria": "Answer saved by 100 users."
+                },
+                {
+                    "name": "Generalist",
+                    "class": 1,
+                    "criteria": "Provide non-wiki answers of 15 total score in 20 of top 40 tags."
+                },
+                {
+                    "name": "Lifejacket",
+                    "class": 1,
+                    "criteria": "Answer score of 5+ to a question score of -2 or less that goes on to score 2+."
+                },
+                {
+                    "name": "Lifeboat",
+                    "class": 0,
+                    "criteria": "Answer score of 20+ to a question score of -3 or less that goes on to score 3+."
+                },
+                {
+                    "name": "Tenacious",
+                    "class": 1,
+                    "criteria": "Zero score accepted answers: more than 5 and 20% of total."
+                },
+                {
+                    "name": "Unsung Hero",
+                    "class": 0,
+                    "criteria": "Zero score accepted answers: more than 10 and 25% of total."
+                }
+            ],
+            "participation": [
+                {
+                    "name": "Autobiographer",
+                    "class": 2,
+                    "criteria": "Complete 'About Me' section of user profile."
+                },
+                {
+                    "name": "Commentator",
+                    "class": 2,
+                    "criteria": "Leave 10 comments."
+                },
+                {
+                    "name": "Pundit",
+                    "class": 1,
+                    "criteria": "Leave 10 comments with score of 5 or more."
+                },
+                {
+                    "name": "Enthusiast",
+                    "class": 1,
+                    "criteria": "Visit the site each day for 30 consecutive days."
+                },
+                {
+                    "name": "Fanatic",
+                    "class": 0,
+                    "criteria": "Visit the site each day for 100 consecutive days."
+                },
+                {
+                    "name": "Mortarboard",
+                    "class": 2,
+                    "criteria": "Earn at least 200 reputation in a single day."
+                },
+                {
+                    "name": "Epic",
+                    "class": 1,
+                    "criteria": "Earn 200 daily reputation 50 times."
+                },
+                {
+                    "name": "Legendary",
+                    "class": 0,
+                    "criteria": "Earn 200 daily reputation 150 times."
+                },
+                {
+                    "name": "Yearling",
+                    "class": 1,
+                    "criteria": "Active member for a year, earning at least 200 reputation."
+                },
+                {
+                    "name": "Announcer",
+                    "class": 2,
+                    "criteria": "Share a link to a post later visited by 25 unique IP addresses."
+                },
+                {
+                    "name": "Booster",
+                    "class": 1,
+                    "criteria": "Share a link to a post later visited by 300 unique IP addresses."
+                },
+                {
+                    "name": "Publicist",
+                    "class": 0,
+                    "criteria": "Share a link to a post later visited by 1000 unique IP addresses."
+                },
+                {
+                    "name": "Caucus",
+                    "class": 2,
+                    "criteria": "Visit an election during any phase with enough reputation to vote."
+                },
+                {
+                    "name": "Constituent",
+                    "class": 1,
+                    "criteria": "Vote for a candidate in the final phase of an election."
+                },
+                {
+                    "name": "Quorum",
+                    "class": 2,
+                    "criteria": "One post with score of 2 on meta."
+                },
+                {
+                    "name": "Convention",
+                    "class": 1,
+                    "criteria": "10 posts with score of 2 on meta."
+                },
+                {
+                    "name": "Talkative",
+                    "class": 2,
+                    "criteria": "Post 10 messages, with 1 or more starred, in chat."
+                },
+                {
+                    "name": "Outspoken",
+                    "class": 1,
+                    "criteria": "Post 10 messages in chat starred by 10 different users."
+                },
+                {
+                    "name": "Census",
+                    "class": 1,
+                    "criteria": "Completed the annual Stack Overflow survey."
+                },
+                {
+                    "name": "Precognitive",
+                    "class": 2,
+                    "criteria": "Followed the Area 51 proposal before it entered the commitment phase."
+                },
+                {
+                    "name": "Beta",
+                    "class": 1,
+                    "criteria": "Voted 10 times, added 3 posts score > 0, and visited on 3 separate days during private beta."
+                },
+                {
+                    "name": "Guide",
+                    "class": 2,
+                    "criteria": "Review 10 posts in Staging Ground."
+                },
+                {
+                    "name": "Instructor",
+                    "class": 1,
+                    "criteria": "Review 250 posts in Staging Ground."
+                },
+                {
+                    "name": "Champion Reviewer",
+                    "class": 0,
+                    "criteria": "Review 1,000 posts in Staging Ground."
+                },
+                {
+                    "name": "Graduate",
+                    "class": 1,
+                    "criteria": "Ask one question successfully on the main site from Staging Ground."
+                },
+                {
+                    "name": "Staging Ground Beta",
+                    "class": 1,
+                    "criteria": "Reviewed at least one question during a Staging Ground Beta round."
+                },
+                {
+                    "name": "Challenge Coder",
+                    "class": 2,
+                    "criteria": "Won 1 coding challenge."
+                },
+                {
+                    "name": "Challenge Creator",
+                    "class": 1,
+                    "criteria": "Authored a coding challenge."
+                },
+                {
+                    "name": "Challenge Hacker",
+                    "class": 1,
+                    "criteria": "Won 10 coding challenges."
+                },
+                {
+                    "name": "Challenge Virtuoso",
+                    "class": 0,
+                    "criteria": "Won 20 coding challenges."
+                }
+            ],
+            "moderation": [
+                {
+                    "name": "Supporter",
+                    "class": 2,
+                    "criteria": "First up vote."
+                },
+                {
+                    "name": "Critic",
+                    "class": 2,
+                    "criteria": "First down vote."
+                },
+                {
+                    "name": "Suffrage",
+                    "class": 2,
+                    "criteria": "Use 30 votes in a day."
+                },
+                {
+                    "name": "Vox Populi",
+                    "class": 2,
+                    "criteria": "Use the maximum 40 votes in a day."
+                },
+                {
+                    "name": "Civic Duty",
+                    "class": 1,
+                    "criteria": "Vote 300 or more times."
+                },
+                {
+                    "name": "Electorate",
+                    "class": 0,
+                    "criteria": "Vote on 600 questions and 25%+ of total votes are on questions."
+                },
+                {
+                    "name": "Sportsmanship",
+                    "class": 1,
+                    "criteria": "Up vote 100 answers on questions where an answer of yours has a positive score."
+                },
+                {
+                    "name": "Citizen Patrol",
+                    "class": 2,
+                    "criteria": "First flagged post."
+                },
+                {
+                    "name": "Deputy",
+                    "class": 1,
+                    "criteria": "Raise 80 helpful flags."
+                },
+                {
+                    "name": "Marshal",
+                    "class": 0,
+                    "criteria": "Raise 500 helpful flags."
+                },
+                {
+                    "name": "Editor",
+                    "class": 2,
+                    "criteria": "First edit."
+                },
+                {
+                    "name": "Strunk & White",
+                    "class": 1,
+                    "criteria": "Edit 80 posts."
+                },
+                {
+                    "name": "Copy Editor",
+                    "class": 0,
+                    "criteria": "Edit 500 posts (excluding own or deleted posts and tag edits)."
+                },
+                {
+                    "name": "Excavator",
+                    "class": 2,
+                    "criteria": "Edit first post that was inactive for 6 months."
+                },
+                {
+                    "name": "Archaeologist",
+                    "class": 1,
+                    "criteria": "Edit 100 posts that were inactive for 6 months."
+                },
+                {
+                    "name": "Organizer",
+                    "class": 2,
+                    "criteria": "First retag."
+                },
+                {
+                    "name": "Cleanup",
+                    "class": 2,
+                    "criteria": "First rollback."
+                },
+                {
+                    "name": "Custodian",
+                    "class": 2,
+                    "criteria": "Complete at least one review task."
+                },
+                {
+                    "name": "Reviewer",
+                    "class": 1,
+                    "criteria": "Complete at least 250 review tasks."
+                },
+                {
+                    "name": "Steward",
+                    "class": 0,
+                    "criteria": "Complete at least 1,000 review tasks."
+                },
+                {
+                    "name": "Proofreader",
+                    "class": 2,
+                    "criteria": "Approve or reject 100 suggested edits."
+                },
+                {
+                    "name": "Disciplined",
+                    "class": 2,
+                    "criteria": "Delete own post with score of 3 or higher."
+                },
+                {
+                    "name": "Peer Pressure",
+                    "class": 2,
+                    "criteria": "Delete own post with score of -3 or lower."
+                },
+                {
+                    "name": "Synonymizer",
+                    "class": 2,
+                    "criteria": "First approved tag synonym."
+                },
+                {
+                    "name": "Tag Editor",
+                    "class": 2,
+                    "criteria": "First tag wiki edit."
+                },
+                {
+                    "name": "Research Assistant",
+                    "class": 1,
+                    "criteria": "Edit 50 tag wikis."
+                },
+                {
+                    "name": "Taxonomist",
+                    "class": 1,
+                    "criteria": "Create a tag used by 50 questions."
+                },
+                {
+                    "name": "Constable",
+                    "class": 0,
+                    "criteria": "Served as a pro-tem moderator for at least 1 year or through site graduation."
+                },
+                {
+                    "name": "Sheriff",
+                    "class": 0,
+                    "criteria": "Served as an elected moderator for at least 1 year."
+                }
+            ],
+            "tag_based": [
+                {
+                    "name": "[tag] Gold Tag Badge",
+                    "class": 0,
+                    "criteria": "Total score of 1000 in at least 200 non-community wiki answers in [tag]."
+                },
+                {
+                    "name": "[tag] Silver Tag Badge",
+                    "class": 1,
+                    "criteria": "Total score of 400 in at least 80 non-community wiki answers in [tag]."
+                },
+                {
+                    "name": "[tag] Bronze Tag Badge",
+                    "class": 2,
+                    "criteria": "Total score of 100 in at least 20 non-community wiki answers in [tag]."
+                }
+            ]
+        },
+        "class_distribution_insight": "Bronze badges dominate because (1) most badge types are bronze (47 bronze vs 30 silver vs 18 gold), (2) many bronze badges are awarded once per qualifying post (e.g., Nice Answer at 10+ score is far more common than Great Answer at 100+), and (3) many bronze badges are trivially earned (Supporter=first upvote, Informed=read tour page). This explains why MODE(Class) = Bronze for every user-activity bin.",
+        "rule_structure_insight": "Most badge rules follow threshold patterns on observable quantities: post scores (10/25/100), view counts (1000/2500/10000), activity counts (10/80/500 edits/flags), or temporal patterns (30/100 consecutive days). The gold/silver/bronze progression typically uses 3x-10x threshold multipliers. Since RelBench strips the badge Name, predicting class requires inferring which threshold was crossed from the user's activity history at the badge award time."
+    }
+}

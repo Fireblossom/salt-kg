@@ -1,0 +1,85 @@
+{
+    "dataset": "rel-arxiv",
+    "source": "arxiv-physics dataset (Tang et al., 2024). GitHub: https://github.com/PKUTHM/arxiv-physics",
+    "description": "A large-scale relational dataset curated from arXiv Physics domain (2018-2023). Contains 222,769 papers, 143,691 authors, 53 physics categories, and 1.5M citations. Structured as a normalized relational database for Relational Deep Learning.",
+    "tables": {
+        "papers": {
+            "description": "Core paper metadata including title, abstract, submission date, DOI, and primary category assignment.",
+            "row_count": 193696,
+            "primary_key": "Paper_ID",
+            "foreign_keys": {},
+            "columns": {
+                "Paper_ID": "Unique paper identifier (primary key)",
+                "arXiv_Code": "arXiv identifier code (e.g., 1801.00001)",
+                "Title": "Paper title",
+                "Abstract": "Paper abstract text",
+                "Submission_Date": "Date of submission to arXiv",
+                "DOI": "Digital Object Identifier",
+                "Primary_Category_ID": "FK to categories.Category_ID — the paper's primary physics research area"
+            }
+        },
+        "categories": {
+            "description": "Taxonomy of 53 physics research areas used for classification.",
+            "row_count": 53,
+            "primary_key": "Category_ID",
+            "foreign_keys": {},
+            "columns": {
+                "Category_ID": "Internal category identifier (primary key, FK target from papers.Primary_Category_ID)",
+                "Category": "Integer label representing the physics category"
+            }
+        },
+        "authors": {
+            "description": "Unique researchers with optional ORCID identifiers.",
+            "row_count": 143691,
+            "primary_key": "Author_ID",
+            "foreign_keys": {},
+            "columns": {
+                "Author_ID": "Unique author identifier (primary key)",
+                "Name": "Author name",
+                "ORCID": "ORCID identifier (may be null)"
+            }
+        },
+        "paperAuthors": {
+            "description": "Many-to-many mapping between papers and authors (616,585 relationships).",
+            "row_count": 452251,
+            "primary_key": null,
+            "foreign_keys": {
+                "Paper_ID": "papers",
+                "Author_ID": "authors"
+            },
+            "columns": {
+                "Paper_ID": "FK to papers table",
+                "Author_ID": "FK to authors table",
+                "Submission_Date": "Timestamp for temporal splits"
+            }
+        },
+        "citations": {
+            "description": "Directed citation links (over 1.5M) verified via Crossref API.",
+            "row_count": 1223361,
+            "primary_key": null,
+            "foreign_keys": {
+                "Paper_ID": "papers",
+                "References_Paper_ID": "papers"
+            },
+            "columns": {
+                "Paper_ID": "Citing paper (FK to papers)",
+                "References_Paper_ID": "Cited paper (FK to papers)",
+                "Submission_Date": "Timestamp for temporal splits"
+            }
+        },
+        "paperCategories": {
+            "description": "Secondary category assignments for papers (a paper may belong to multiple physics subfields).",
+            "row_count": 133060,
+            "primary_key": null,
+            "foreign_keys": {
+                "Paper_ID": "papers",
+                "Category_ID": "categories"
+            },
+            "columns": {
+                "Paper_ID": "FK to papers table",
+                "Category_ID": "FK to categories table",
+                "Submission_Date": "Timestamp for temporal splits"
+            }
+        }
+    }
+}

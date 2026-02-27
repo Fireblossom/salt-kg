@@ -50,6 +50,7 @@
 - **Result (JoinedTables_test.parquet)**:
   - Before: `69.393%` overall (`73.076%` seen customers, `7.972%` new customers)
   - After: `69.998%` overall (`73.717%` seen customers, `7.972%` new customers)
+  - **Verified**: **70.00%**
   - **Delta**: `+0.605 pp` overall, `+0.641 pp` on seen customers
 
 ---

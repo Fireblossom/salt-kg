@@ -51,6 +51,7 @@
 - **Result (JoinedTables_test.parquet)**:
   - Before: `69.367%` overall (`70.713%` seen sold-to, `46.918%` new sold-to)
   - After: `69.550%` overall (`70.877%` seen sold-to, `47.427%` new sold-to)
+  - **Verified**: **69.56%**
   - **Delta**: `+0.183 pp` overall
 
 ---

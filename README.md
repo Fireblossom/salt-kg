@@ -30,6 +30,23 @@ I developed a novel prediction approach that uses **LLM-generated Python scripts
 > **SALT-KG Best**: Baseline + KG enhancement from Table 1  
 > **Note**: Results are comparable within margin; SALT-KG embeddings likely provide additional value for cold-start scenarios.
 
+### Accuracy Comparison
+
+[RelBench v2](https://arxiv.org/abs/2602.12606) (Gu et al., 2026) adopted SALT as an official benchmark dataset and introduced **autocomplete tasks**, a new task type directly inspired by SALT's sales order completion use case. Their end-to-end GNN (heterogeneous GraphSAGE) was evaluated on all 8 target fields. Below we compare test Accuracy under the same metric:
+
+| Target Field | Mine (Accuracy) | RelBench v2 GNN (Accuracy) |
+|---|---|---|
+| PLANT | **99.68%** | 99.46% |
+| SHIPPINGPOINT | **98.65%** | 98.39% |
+| SALESOFFICE | **99.91%** | 99.88% |
+| HEADERINCOTERMS | **77.22%** | 62.23% |
+| ITEMINCOTERMS | **77.15%** | 69.36% |
+| SHIPPINGCONDITION | **69.56%** | 56.85% |
+| CUSTOMERPAYMENTTERMS | **82.86%** | 37.47% |
+| SALESGROUP | **70.00%** | 15.76% |
+
+> **Takeaway**: The Agentic Solver outperforms the end-to-end GNN on **all 8 fields**. GNNs approach parity on structurally deterministic fields (Plant, ShippingPoint, SalesOffice), but on high-cardinality fields requiring business semantics (SalesGroup: 70% vs 16%, PaymentTerms: 83% vs 37%), the gap is dramatic. The two approaches are complementary: GNNs for structural inference, rule-based methods for semantic reasoning.
+
 ### Methodology: Code as Reasoning
 
 Instead of embedding-based similarity matching, I use:

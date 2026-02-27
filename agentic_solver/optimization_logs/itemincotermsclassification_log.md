@@ -21,7 +21,7 @@
 
 ### Iteration 0 - Initial Script
 - **Date**: 2026-02-04 16:07
-- **Accuracy**: 77.00%
+- **Accuracy**: 77.15%
 - **Strategy**: SOLDTOPARTY lookup → SALESORGANIZATION fallback → mode
 
 ---

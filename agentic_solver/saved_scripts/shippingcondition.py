@@ -13,7 +13,7 @@ import pandas as pd
 import json
 from pathlib import Path
 
-_m = json.loads((Path(__file__).parent / 'shippingcondition_mapping_simple.json').read_text())
+_m = json.loads((Path(__file__).parent / 'shippingcondition_mapping.json').read_text())
 L0 = _m['L0_SOLDTO_DT_SP']
 L1 = _m['L1_SHIPTO_DT_SP']
 L2 = _m['L2_DT_PLANT_SP']

@@ -24,6 +24,17 @@
 - **Accuracy**: 79.60%
 - **Strategy**: SOLDTOPARTY lookup → SALESORGANIZATION fallback → mode
 
+### Iteration 1 - Anti-overfitting cascade (current)
+- **Date**: 2026-02-25
+- **Verified Accuracy**: **82.86%**
+- **Cascade**:
+  - `L0`: SOLDTOPARTY + SALESDOCUMENTTYPE (min_support=3)
+  - `L1`: SOLDTOPARTY (min_support=2)
+  - `L2`: SALESDOCUMENTTYPE + SALESORGANIZATION (structural fallback)
+  - `L3`: SALESORGANIZATION
+  - fallback: mode (`32`)
+- **Delta**: +3.26 pp vs Iteration 0
+
 ---
 
 ## Lookup SQL Queries
