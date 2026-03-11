@@ -150,5 +150,5 @@ The `addition_experiments/` directory contains scripts for rel-arxiv and rel-sta
 
 ## Data Availability
 
-- **SALT-KG tabular data**: Released under controlled access due to proprietary SAP customer data. See the [SALT-KG benchmark](https://github.com/SAP-samples/salt-kg) for access instructions.
+- **SALT-KG tabular data**: See the [SALT-KG benchmark](https://github.com/SAP-samples/salt-kg).
 - **rel-arxiv and rel-stack**: Public datasets available through [RelBench v2](https://relbench.stanford.edu/).
