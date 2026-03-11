@@ -31,7 +31,7 @@ def predict_shippingpoint(row):
     if ship_cond == 18 and plant in SC18:
         return SC18[plant]
     
-    # Determine if this is a "service" type (virtual shipping point)
+    # Determine if this triggers the alternate shipping point branch (customer-specific config)
     is_service = (ship_cond >= 94) or (doc_type in ['ZMUN', 'ZMUT'])
     
     # Composite lookup: (PLANT, is_service)

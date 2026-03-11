@@ -25,13 +25,13 @@
 |-------------------|-------------------|
 | 01-42 (low) | Base values (0001, 0300, 0700...) |
 | 18-20 | Special variants (0301, 1301, 1302...) |
-| 94-99 (high) | "02" suffix (0302, 0702, MUST...) |
+| 94-99 (high) | Alternate branch (0302, 0702, MUST...) |
 
 ### 2. SALESDOCUMENTTYPE Correlation
 | DOCTYPE | Shipping Type |
 |---------|--------------|
-| TA, ZIA | Physical shipping |
-| ZMUN, ZMUT | Virtual/Service (→ 02 suffix or MUST) |
+| TA, ZIA | Default determination |
+| ZMUN, ZMUT | Alternate branch (→ 02 suffix or MUST) |
 
 ### 3. PLANT 0001 Special Case
 - `SC<94 + DOCTYPE=TA` → **0001**
@@ -47,7 +47,7 @@
 
 ### Iteration 1 - Multi-Factor Lookup (2026-02-04 21:02)
 - **Accuracy**: 98.10%
-- **Strategy**: (PLANT, is_service) composite key
+- **Strategy**: (PLANT, is_alt_branch) composite key
 - **Key change**: Added SHIPPINGCONDITION >=94 and SALESDOCUMENTTYPE check
 
 ### Iteration 2 - SC=18 Special Handling (2026-02-04 21:04)
@@ -60,8 +60,8 @@
 ## Lookup SQL Queries
 
 ```sql
--- Composite: (PLANT, is_service) -> SHIPPINGPOINT (59 keys)
--- is_service = SHIPPINGCONDITION >= 94 OR DOCTYPE IN ('ZMUN', 'ZMUT')
+-- Composite: (PLANT, is_alt_branch) -> SHIPPINGPOINT (59 keys)
+-- is_alt_branch = SHIPPINGCONDITION >= 94 OR DOCTYPE IN ('ZMUN', 'ZMUT')
 SELECT "PLANT" || '|' ||
        CASE WHEN CAST("SHIPPINGCONDITION" AS INT) >= 94
             OR "SALESDOCUMENTTYPE" IN ('ZMUN', 'ZMUT')
@@ -96,7 +96,7 @@ SELECT MODE("SHIPPINGPOINT") FROM train
 
 ### Sample Results (Composite: top 15 by frequency)
 
-| Key (PLANT\|is_service) | SHIPPINGPOINT | Rows | % |
+| Key (PLANT\|is_alt_branch) | SHIPPINGPOINT | Rows | % |
 |-------------------------|---------------|------|---|
 | 0001\|1 | MUST | 978,285 | 51.0% |
 | 0001\|0 | 0001 | 246,423 | 12.9% |
@@ -109,4 +109,4 @@ SELECT MODE("SHIPPINGPOINT") FROM train
 | 4200\|0 | 4200 | 35,585 | 1.9% |
 | 0400\|1 | 0401 | 33,918 | 1.8% |
 
-> `is_service=1` (SC>=94 or ZMUN/ZMUT) routes to virtual shipping points (MUST, x02 suffix). `is_service=0` routes to physical points. Only 59 unique keys needed. Top 10 keys cover 85.4% of data.
+> `is_alt_branch=1` (SC>=94 or ZMUN/ZMUT) routes to alternate shipping points (MUST, x02 suffix). `is_alt_branch=0` routes to default points. Only 59 unique keys needed. Top 10 keys cover 85.4% of data.

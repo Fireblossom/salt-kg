@@ -2,6 +2,9 @@
 rel-stack / badges-class — Predict badge class (0=gold, 1=silver, 2=bronze)
 Join: badge → UserId → per-user MODE(Class) from training data
 Fallback: Global MODE (2 = bronze)
+
+NOTE: Uses get_db(upto_test_timestamp=False) for the full badges table,
+matching the GNN autocomplete pipeline which also uses the full DB.
 """
 import json
 import pandas as pd
